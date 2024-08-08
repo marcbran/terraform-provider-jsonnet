@@ -7,7 +7,7 @@ terraform {
 }
 
 output "output" {
-  value = jsondecode(provider::jsonnet::evaluate(<<-EOF
+  value = jsondecode(provider :: jsonnet :: evaluate(<<-EOF
 {
   person1: {
     name: "Alice",
