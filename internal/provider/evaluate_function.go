@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/google/go-jsonnet"
 	"github.com/hashicorp/terraform-plugin-framework/function"
-	jsonnetUtil "github.com/marcbran/terraform-provider-jsonnet/internal/jsonnet"
+	jsonnetUtil "terraform-provider-jsonnet/internal/jsonnet"
 )
 
 var (

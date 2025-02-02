@@ -1,4 +1,4 @@
-module github.com/marcbran/terraform-provider-jsonnet
+module terraform-provider-jsonnet
 
 go 1.21
 
