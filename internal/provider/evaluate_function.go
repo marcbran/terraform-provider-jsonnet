@@ -2,8 +2,10 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/go-jsonnet"
 	"github.com/hashicorp/terraform-plugin-framework/function"
+	jsonnetUtil "github.com/marcbran/terraform-provider-jsonnet/internal/jsonnet"
 )
 
 var (
@@ -45,7 +47,17 @@ func (j EvaluateFunction) Run(ctx context.Context, req function.RunRequest, resp
 	}
 
 	vm := jsonnet.MakeVM()
-	jsonStr, err := vm.EvaluateAnonymousSnippet("main.jsonnet", data)
+	vm.NativeFunction(jsonnetUtil.UuidV5())
+	preamble := `
+      local stdTf = std {
+        tf: {
+          uuidv5: std.native('uuidv5')
+        }
+      };
+      local std = stdTf;
+	`
+	snippet := fmt.Sprintf("%s%s", preamble, data)
+	jsonStr, err := vm.EvaluateAnonymousSnippet("main.jsonnet", snippet)
 
 	if err != nil {
 		resp.Error = function.ConcatFuncErrors(function.NewFuncError(err.Error()))

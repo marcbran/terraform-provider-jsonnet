@@ -8,7 +8,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 )
 
-func TestJsonnetFunction_Known(t *testing.T) {
+func TestJsonnetFunction_Null(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_8_0),
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				output "test" {
+					value = provider::jsonnet::evaluate(null)
+				}
+				`,
+				ExpectError: regexp.MustCompile(`argument must not be null`),
+			},
+		},
+	})
+}
+
+func TestJsonnetFunction_EmptyObject(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
 			tfversion.SkipBelow(tfversion.Version1_8_0),
@@ -29,26 +48,7 @@ func TestJsonnetFunction_Known(t *testing.T) {
 	})
 }
 
-func TestJsonnetFunction_Null(t *testing.T) {
-	resource.UnitTest(t, resource.TestCase{
-		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
-			tfversion.SkipBelow(tfversion.Version1_8_0),
-		},
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: `
-				output "test" {
-					value = provider::jsonnet::evaluate(null)
-				}
-				`,
-				ExpectError: regexp.MustCompile(`argument must not be null`),
-			},
-		},
-	})
-}
-
-func TestJsonnetFunction_Unknown(t *testing.T) {
+func TestJsonnetFunction_Resource(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
 			tfversion.SkipBelow(tfversion.Version1_8_0),
@@ -66,6 +66,27 @@ func TestJsonnetFunction_Unknown(t *testing.T) {
 				`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckOutput("test", "{ }\n"),
+				),
+			},
+		},
+	})
+}
+
+func TestJsonnetFunction_UuidV5(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_8_0),
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+				output "test" {
+					value = provider::jsonnet::evaluate("std.tf.uuidv5('dns', 'example.com')")
+				}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckOutput("test", "\"cfbff0d1-9375-5685-968c-48ce8b15ae17\"\n"),
 				),
 			},
 		},
