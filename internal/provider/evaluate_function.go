@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-jsonnet"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	jsonnetUtil "terraform-provider-jsonnet/internal/jsonnet"
 )
 
@@ -19,6 +21,16 @@ func NewEvaluateFunction() function.Function {
 type EvaluateFunction struct {
 }
 
+type EvaluateOptions struct {
+	JPaths []string `tfsdk:"jpaths"`
+}
+
+func (o EvaluateOptions) merge(other EvaluateOptions) EvaluateOptions {
+	return EvaluateOptions{
+		JPaths: append(o.JPaths, other.JPaths...),
+	}
+}
+
 func (j EvaluateFunction) Metadata(ctx context.Context, req function.MetadataRequest, resp *function.MetadataResponse) {
 	resp.Name = "evaluate"
 }
@@ -29,24 +41,41 @@ func (j EvaluateFunction) Definition(ctx context.Context, req function.Definitio
 		MarkdownDescription: "Evaluates the provided string as Jsonnet",
 		Parameters: []function.Parameter{
 			function.StringParameter{
-				Name:                "jsonnet",
-				MarkdownDescription: "The Jsonnet value to be evaluated",
+				MarkdownDescription: "The Jsonnet code to be evaluated",
+				Name:                "code",
 			},
+		},
+		VariadicParameter: function.ObjectParameter{
+			AttributeTypes: map[string]attr.Type{
+				"jpaths": types.ListType{
+					ElemType: types.StringType,
+				},
+			},
+			MarkdownDescription: "Additional options to be passed to the Jsonnet VM",
+			Name:                "options",
 		},
 		Return: function.StringReturn{},
 	}
 }
 
 func (j EvaluateFunction) Run(ctx context.Context, req function.RunRequest, resp *function.RunResponse) {
-	var data string
-
-	resp.Error = function.ConcatFuncErrors(req.Arguments.Get(ctx, &data))
+	var code string
+	var options []EvaluateOptions
+	resp.Error = function.ConcatFuncErrors(req.Arguments.Get(ctx, &code, &options))
 
 	if resp.Error != nil {
 		return
 	}
 
+	mergedOptions := EvaluateOptions{}
+	for _, o := range options {
+		mergedOptions = mergedOptions.merge(o)
+	}
+
 	vm := jsonnet.MakeVM()
+	vm.Importer(&jsonnet.FileImporter{
+		JPaths: mergedOptions.JPaths,
+	})
 	vm.NativeFunction(jsonnetUtil.UuidV5())
 	preamble := `
       local stdTf = std {
@@ -56,7 +85,7 @@ func (j EvaluateFunction) Run(ctx context.Context, req function.RunRequest, resp
       };
       local std = stdTf;
 	`
-	snippet := fmt.Sprintf("%s%s", preamble, data)
+	snippet := fmt.Sprintf("%s%s", preamble, code)
 	jsonStr, err := vm.EvaluateAnonymousSnippet("main.jsonnet", snippet)
 
 	if err != nil {
