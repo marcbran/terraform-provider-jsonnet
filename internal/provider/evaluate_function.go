@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"os"
+	"path/filepath"
 	jsonnetUtil "terraform-provider-jsonnet/internal/jsonnet"
 )
 
@@ -68,6 +70,11 @@ func (j EvaluateFunction) Run(ctx context.Context, req function.RunRequest, resp
 	}
 
 	mergedOptions := EvaluateOptions{}
+	jsonnetPath := filepath.SplitList(os.Getenv("JSONNET_PATH"))
+	for i := len(jsonnetPath) - 1; i >= 0; i-- {
+		mergedOptions.JPaths = append(mergedOptions.JPaths, jsonnetPath[i])
+	}
+
 	for _, o := range options {
 		mergedOptions = mergedOptions.merge(o)
 	}
