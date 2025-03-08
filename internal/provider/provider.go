@@ -51,7 +51,9 @@ func (p *JsonnetProvider) Resources(ctx context.Context) []func() resource.Resou
 }
 
 func (p *JsonnetProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewCodeDataSource,
+	}
 }
 
 func (p *JsonnetProvider) Functions(ctx context.Context) []func() function.Function {

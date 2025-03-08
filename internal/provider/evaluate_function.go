@@ -69,6 +69,17 @@ func (j EvaluateFunction) Run(ctx context.Context, req function.RunRequest, resp
 		return
 	}
 
+	jsonStr, err := evaluate(code, options)
+
+	if err != nil {
+		resp.Error = function.ConcatFuncErrors(function.NewFuncError(err.Error()))
+		return
+	}
+
+	resp.Error = function.ConcatFuncErrors(resp.Result.Set(ctx, jsonStr))
+}
+
+func evaluate(code string, options []EvaluateOptions) (string, error) {
 	mergedOptions := EvaluateOptions{}
 	jsonnetPath := filepath.SplitList(os.Getenv("JSONNET_PATH"))
 	for i := len(jsonnetPath) - 1; i >= 0; i-- {
@@ -94,11 +105,5 @@ func (j EvaluateFunction) Run(ctx context.Context, req function.RunRequest, resp
 	`
 	snippet := fmt.Sprintf("%s%s", preamble, code)
 	jsonStr, err := vm.EvaluateAnonymousSnippet("main.jsonnet", snippet)
-
-	if err != nil {
-		resp.Error = function.ConcatFuncErrors(function.NewFuncError(err.Error()))
-		return
-	}
-
-	resp.Error = function.ConcatFuncErrors(resp.Result.Set(ctx, jsonStr))
+	return jsonStr, err
 }
